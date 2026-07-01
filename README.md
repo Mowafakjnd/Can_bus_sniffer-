@@ -32,16 +32,16 @@ Arduino UNO — CAN receiver / decoder
 
 
 Screenshots
+1. Virtual CAN bus testing with ICSim
 
-1. Capturing raw OutGauge UDP traffic (Linux VM + LFS)
+<img width="960" height="826" alt="Capture d&#39;écran 2026-03-30 211627" src="https://github.com/user-attachments/assets/b08afabe-b01c-4a06-9b36-c2298660f344" />
+Testing CAN frame structure on a virtual vcan0 interface using ICSim before wiring up real MCP2515 hardware — a cheap way to validate frame IDs and payload sizes first.
+
+2. Capturing raw OutGauge UDP traffic (Linux VM + LFS)
 
 <img width="1920" height="1080" alt="Capture d&#39;écran 2026-03-31 222924" src="https://github.com/user-attachments/assets/8e7327dd-b872-4cc2-af54-203a094ffd0b" /> 
 Live For Speed running alongside a Linux VM, dumping the raw OutGauge UDP payload in hex to identify field boundaries (fuel, brake balance, car name, etc.) before writing a parser.
 
-2. Virtual CAN bus testing with ICSim
-
-<img width="960" height="826" alt="Capture d&#39;écran 2026-03-30 211627" src="https://github.com/user-attachments/assets/b08afabe-b01c-4a06-9b36-c2298660f344" />
-Testing CAN frame structure on a virtual vcan0 interface using ICSim before wiring up real MCP2515 hardware — a cheap way to validate frame IDs and payload sizes first.
 
 3. Wireshark dissection of the OutGauge packet
 

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Virtual CAN Cluster</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#111827;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --blue:#38bdf8;
+    }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 700px at 50% 20%, #0f172a, var(--bg));
+      color:var(--text);
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:22px;}
+    .top{display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;}
+    .card{
+      background: rgba(17,24,39,.75);
+      border:1px solid rgba(148,163,184,.2);
+      border-radius:16px;
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .gauge{flex: 1 1 420px; min-width: 360px;}
+    .lights{flex: 1 1 340px; min-width: 320px;}
+    .title{font-size:14px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+    .speedRow{display:flex;align-items:baseline;gap:10px;margin-top:8px}
+    .speedVal{font-size:74px;font-weight:800;line-height:1}
+    .unit{color:var(--muted);font-size:18px}
+    .barWrap{margin-top:14px}
+    .bar{
+      height:14px;border-radius:999px;background:rgba(148,163,184,.15);overflow:hidden;
+      border:1px solid rgba(148,163,184,.2);
+    }
+    .fill{
+      height:100%; width:0%;
+      background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
+      transition: width .15s ease;
+    }
+    .grid{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px
+    }
+    .lamp{
+      display:flex;align-items:center;gap:10px;
+      padding:12px;border-radius:12px;
+      background: rgba(2,6,23,.35);
+      border:1px solid rgba(148,163,184,.18);
+    }
+    .dot{
+      width:14px;height:14px;border-radius:50%;
+      background: rgba(148,163,184,.35);
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,.25);
+    }
+    .on.good .dot{background:var(--good); box-shadow: 0 0 18px rgba(34,197,94,.55);}
+    .on.warn .dot{background:var(--warn); box-shadow: 0 0 18px rgba(245,158,11,.55);}
+    .on.bad .dot{background:var(--bad); box-shadow: 0 0 18px rgba(239,68,68,.55);}
+    .on.blue .dot{background:var(--blue); box-shadow: 0 0 18px rgba(56,189,248,.55);}
+    .name{font-weight:700}
+    .hint{color:var(--muted);font-size:12px;margin-top:2px}
+    .bottom{margin-top:16px}
+    .raw{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: #cbd5e1;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="card gauge">
+        <div class="title">Speed</div>
+        <div class="speedRow">
+          <div class="speedVal" id="speed">0</div>
+          <div class="unit">km/h (byte value)</div>
+        </div>
+        <div class="barWrap">
+          <div class="bar"><div class="fill" id="speedFill"></div></div>
+          <div class="hint">Bar scales 0–255 (matches your SPEED byte)</div>
+        </div>
+      </div>
+
+      <div class="card lights">
+        <div class="title">Warning / Indicators</div>
+        <div class="grid">
+          <div class="lamp" id="lampBrake">
+            <div class="dot"></div>
+            <div>
+              <div class="name">Brake</div>
+              <div class="hint">BRAKE_PRESSED</div>
+            </div>
+          </div>
+          <div class="lamp" id="lampAirbag">
+            <div class="dot"></div>
+            <div>
+              <div class="name">Airbag</div>
+              <div class="hint">AIRBAG_LAMP</div>
+            </div>
+          </div>
+          <div class="lamp" id="lampDoor">
+            <div class="dot"></div>
+            <div>
+              <div class="name">Door</div>
+              <div class="hint">Any DOOR_* / TRUNK</div>
+            </div>
+          </div>
+          <div class="lamp" id="lampLow">
+            <div class="dot"></div>
+            <div>
+              <div class="name">Low Beam</div>
+              <div class="hint">LOW</div>
+            </div>
+          </div>
+          <div class="lamp" id="lampHigh">
+            <div class="dot"></div>
+            <div>
+              <div class="name">High Beam</div>
+              <div class="hint">HIGH</div>
+            </div>
+          </div>
+          <div class="lamp" id="lampLeft">
+            <div class="dot"></div>
+            <div>
+              <div class="name">Left Indicator</div>
+              <div class="hint">LEFT_IND</div>
+            </div>
+          </div>
+          <div class="lamp" id="lampRight">
+            <div class="dot"></div>
+            <div>
+              <div class="name">Right Indicator</div>
+              <div class="hint">RIGHT_IND</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bottom">
+      <div class="title">Latest UDP message</div>
+      <div class="raw" id="raw">(waiting...)</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const elSpeed = document.getElementById("speed");
+    const elFill  = document.getElementById("speedFill");
+    const elRaw   = document.getElementById("raw");
+
+    function setLamp(id, on, level){
+      const el = document.getElementById(id);
+      el.classList.remove("on","good","warn","bad","blue");
+      if(on){
+        el.classList.add("on");
+        el.classList.add(level || "good");
+      }
+    }
+
+    const socket = io();
+
+    socket.on("connect", () => {
+      elRaw.textContent = "Connected to cluster server. Waiting for UDP…";
+    });
+
+    socket.on("state", (s) => {
+      const speed = Number(s.speed || 0);
+      elSpeed.textContent = speed;
+      elFill.style.width = Math.max(0, Math.min(255, speed)) / 255 * 100 + "%";
+
+      elRaw.textContent = s.raw || "";
+
+      setLamp("lampBrake",  Number(s.brake) === 1, "bad");
+      setLamp("lampAirbag", Number(s.airbag) === 1, "bad");
+      setLamp("lampDoor",   Number(s.door) === 1, "warn");
+
+      setLamp("lampLow",  Number(s.low) === 1, "blue");
+      setLamp("lampHigh", Number(s.high) === 1, "blue");
+
+      setLamp("lampLeft",  Number(s.left) === 1, "good");
+      setLamp("lampRight", Number(s.right) === 1, "good");
+    });
+  </script>
+</body>
+</html>

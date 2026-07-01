@@ -31,31 +31,31 @@ LFS (OutGauge UDP)  --WiFi-->  ESP32  --CAN-->  MCP2515 #1  ---CAN bus wires--->
 ## Screenshots
 
 ### 1. MCP2515 CAN transceiver module
-![MCP2515 module](images/07_mcp2515_can_module.png)
+<img width="534" height="409" alt="Capture d&#39;écran 2026-04-18 172210" src="https://github.com/user-attachments/assets/14dabb63-1a30-4d8b-9342-eee29a43fcc2" />
 The MCP2515 CAN bus transceiver module used on both ends of the physical CAN link (ESP32 side and Arduino side) — the core piece of hardware that makes this a real CAN bus project instead of just a UDP relay.
 
 ### 2. Capturing raw OutGauge UDP traffic (Linux VM + LFS)
-![LFS UDP hex dump](images/01_lfs_linux_udp_hexdump.png)
+<img width="1920" height="1080" alt="Capture d&#39;écran 2026-03-31 222924" src="https://github.com/user-attachments/assets/8e7327dd-b872-4cc2-af54-203a094ffd0b" /> 
 First pass at understanding the protocol: Live For Speed running alongside a Linux VM, dumping the raw OutGauge UDP payload in hex to identify field boundaries (fuel, brake balance, car name, etc.) by eye before reaching for a proper dissector.
 
 ### 3. Wireshark dissection of the OutGauge packet
-![Wireshark OutGauge capture](images/03_wireshark_outgauge_capture.png)
+<img width="1920" height="1080" alt="Capture d&#39;écran 2026-03-31 232616" src="https://github.com/user-attachments/assets/33b04389-6295-43f0-8523-e8ff80d0568c" />
 Wireshark filtering on `udp.port == 2992`, showing the custom dissector output for `LFS OutGauge Telemetry Data` — Speed, RPM, Turbo, Engine Temp, and Fuel Capacity extracted live while driving.
 
 ### 4. Field-level packet breakdown
-![Wireshark OutGauge fields](images/04_wireshark_outgauge_dissected.png)
+<img width="541" height="329" alt="Capture d&#39;écran 2026-03-31 225606" src="https://github.com/user-attachments/assets/97a44346-c90f-489b-a6db-eacd7d1753fb" />
 Close-up of the dissected UDP payload, confirming the exact byte offsets used later in the ESP32 parsing code (Time, Car Name, Flags, Gear, Speed, RPM, Turbo, Engine Temp, Fuel Capacity).
 
 ### 5. Virtual CAN bus testing with ICSim
-![ICSim vcan0 candump](images/02_icsim_vcan0_candump.png)
+<img width="960" height="826" alt="Capture d&#39;écran 2026-03-30 211627" src="https://github.com/user-attachments/assets/b08afabe-b01c-4a06-9b36-c2298660f344" />
 With the protocol understood, CAN frame structure gets validated on a virtual `vcan0` interface using ICSim before wiring up real MCP2515 hardware — a cheap way to check frame IDs and payload sizes first.
 
 ### 6. ESP32 encoder / Arduino decoder firmware
-![ESP32 encode, Arduino decode](images/05_esp32_arduino_can_encode_decode.png)
+<img width="1920" height="1080" alt="Capture d&#39;écran 2026-04-19 014858" src="https://github.com/user-attachments/assets/44e80692-2ddc-47e3-914c-4bf521c7164d" />
 Left: ESP32 sketch packing RPM (OBD-II style, RPM×4 split across 2 bytes) and speed into a `canMsg` struct before sending via MCP2515. Right: Arduino UNO sketch reversing the math to recover RPM and speed from the CAN frame. The serial output ("CAN Send Error – Check J1 Jumpers and Wiring!") here was mid-debug of the SPI/CAN wiring between the two MCP2515 boards.
 
 ### 7. ESP32 WiFi AP + UDP listener, MCP2515 init success
-![ESP32 AP + MCP2515 init](images/06_esp32_ap_mcp2515_init_success.png)
+<img width="1920" height="1080" alt="Capture d&#39;écran 2026-04-18 225134" src="https://github.com/user-attachments/assets/9f23bfac-abb0-4a8e-b71d-6845cbe76878" />
 The payoff: ESP32 hosting its own WiFi access point and listening on a UDP port for incoming telemetry, alongside a successful `MCP2515 Initialized Successfully!` log confirming the CAN controller came up correctly over SPI — full pipeline working end to end.
 
 ## Status / known issues
@@ -64,12 +64,6 @@ The payoff: ESP32 hosting its own WiFi access point and listening on a UDP port 
 - Currently outputs decoded values over Serial; a physical gauge/LED dashboard is the next step.
 - Shift-light logic implemented (LED on Pin 9 when RPM > 6500) as a first real-world "actuation" from CAN data.
 
-## Roadmap
-
-- [ ] Move from Serial print to a physical instrument cluster / LED bar for RPM and speed
-- [ ] Support more OutGauge fields (fuel, gear, turbo) as separate CAN IDs
-- [ ] Clean up wiring and document a proper schematic
-- [ ] Package as a reusable "sim-to-CAN" bridge for other telemetry-capable games/sims
 
 ## Setup
 
